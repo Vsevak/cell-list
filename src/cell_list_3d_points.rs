@@ -43,6 +43,10 @@ impl<'a, T: AsRef<[f64]>> CellList3DPoints<'a, T> {
             None
         }
     }
+
+    pub fn get_cells_iter(&'a self) -> CellsIter<'a,T> {
+        CellsIter { clist: &self, cells_iter: self.clist.head.iter() }
+    }
 }
 
 pub struct PointsIter<'a, T: AsRef<[f64]>> {
@@ -58,17 +62,17 @@ impl<'a, T: AsRef<[f64]>> Iterator for PointsIter<'a, T> {
     }
 }
 
-pub struct CellsIter<'a> {
-    clist: &'a CellList,
+pub struct CellsIter<'a, T: AsRef<[f64]>> {
+    clist: &'a CellList3DPoints<'a, T>,
     cells_iter: std::collections::hash_map::Iter<'a, usize, usize>
 }
 
-impl<'a> Iterator for CellsIter<'a> {
-    type Item = (usize,CellItemsIter<'a>);
+impl<'a, T: AsRef<[f64]>> Iterator for CellsIter<'a,T> {
+    type Item = (usize, PointsIter<'a,T>);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.cells_iter.next().map( 
-            |(&cell,&start)|  (cell, CellItemsIter { clist: self.clist, pos: start })
+            |(&cell,&start)|  (cell, self.clist.get_cell_points_iter(cell).unwrap())
         )
     }
 }
@@ -109,5 +113,34 @@ mod tests {
         //         dbg!(point);
         //     }
         // }
+    }
+
+    #[test]
+    fn test_cell_list_full_iter() {
+        let v = &[[2.0 as f64, 2.0, 1.0], 
+        [2.0, 8.0, 1.0], [5.0, 5.0, 1.0], [5.0, 5.0, -1.0], 
+        [6.0, 3.0, -1.0], [6.0, 7.0, 0.0], [7.0, 4.0, 0.0],
+        [7.0, 9.0, 0.0]];
+        let mut min  = v[0];
+        let mut max = v[0];
+        for p in v {
+            for i in 0..3 {
+                min[i] = min[i].min(p[i]);
+                max[i] = max[i].max(p[i]);
+            }
+        }
+        let cl = CellList3DPoints::build(
+            v,
+            min,
+            max,
+            4.0f64
+        );
+        dbg!(&cl);
+        for (id, cell) in cl.get_cells_iter() {
+            println!("========{}==========", id);
+            for point in cell {
+                dbg!(point);
+            }
+        }
     }
 }
