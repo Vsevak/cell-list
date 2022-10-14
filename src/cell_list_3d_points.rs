@@ -3,7 +3,6 @@ use num_traits::{Float, AsPrimitive};
 
 use crate::cell_list::*;
 
-
 /// Classic cell list implementation for model based on 3D point representation (molecular dynamics etc.)
 /// 
 /// It contains generic [CellList] and a 3D points vector slice.
@@ -32,7 +31,6 @@ impl<'a, T: Point3D> CellList3DPoints<'a, T> {
                 + (((point.y()-box_min_coord.y()) / cell_side).floor())*nx
                 + (((point.z()-box_min_coord.z()) / cell_side).floor())*nx*ny
             }.as_();
-            dbg!((&point.x(), point.y(), point.z(), &cell));
             let head_e = head.entry(cell).or_insert(0);
             list[i] = *head_e;
             *head_e = i;
