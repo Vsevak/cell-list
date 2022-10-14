@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-#[derive(Debug)]
+const USIZE_BITS: usize = core::mem::size_of::<usize>() * 8;
+const MAX_CAPACITY: usize = 1 << (USIZE_BITS-1);
+
+#[derive(Debug, Clone)]
 pub struct CellList {
     pub(crate) head: HashMap<usize,usize>,
     pub(crate) list: Vec<usize>,
@@ -11,22 +14,29 @@ impl CellList {
         Self { head: HashMap::new(), list: Vec::new() }
     }
 
+/// Append a value to a correspondng cell.
     pub fn push(&mut self, cell: usize, value: usize) {
         let value = value + 1;
         let head_e = self.head.entry(cell).or_insert(0);
-        if let Some(delta) = (value+1).checked_sub(self.list.len()) {
+        if let Some(_) = (value+1).checked_sub(self.list.len()) {
             self.list.resize(value+1, 0);
         }
         self.list[value] = *head_e;
         *head_e = value;
     }
 
-    pub fn get_cell_items_iter(&self, cell_index: usize) -> Option<CellItemsIter<'_>> {
+    pub fn iter_cell_items(&self, cell_index: usize) -> Option<CellItemsIter<'_>> {
         if let Some(&pos) = self.head.get(&cell_index) {
             Some(CellItemsIter { clist: &self, pos } )
         } else {
             None
         }
+    }
+}
+
+impl Default for CellList {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -61,8 +71,35 @@ mod tests {
             cl.push(x/2usize, i);
         }
         dbg!(&cl);
-        for i in cl.get_cell_items_iter(1).unwrap() {
+        for i in cl.iter_cell_items(1).unwrap() {
             dbg!((&i, v[i]));
+        }
+    }
+
+    #[test]
+    fn test_saving_inc() {
+        let cell = 1;
+        let mut cl = CellList::new();
+        let r = 0..100;
+        for i in r.clone() {
+            cl.push(cell, i);
+        }
+        let mut r = r;
+        for val in cl.iter_cell_items(cell).unwrap() {
+            assert_eq!(r.next_back().unwrap(), val);
+        }
+    }
+
+    #[test]
+    fn test_saving_dec() {
+        let mut cl = CellList::new();
+        let r = 0..100;
+        for i in r.clone().rev() {
+            cl.push(i/50, i);
+        }
+        let mut r = 50..100;
+        for val in cl.iter_cell_items(1).unwrap() {
+            assert_eq!(r.next().unwrap(), val);
         }
     }
 }
