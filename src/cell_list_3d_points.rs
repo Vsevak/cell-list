@@ -14,8 +14,8 @@ impl<'a, T: Point3D> CellList3DPoints<'a, T>
     {
     pub fn build(
         origin: &'a [T],
-        cell_min_coord: T,
-        cell_max_coord: T,
+        box_min_coord: T,
+        box_max_coord: T,
         step: T::Precision
     ) -> Self {
         let mut head = HashMap::new();
@@ -23,11 +23,11 @@ impl<'a, T: Point3D> CellList3DPoints<'a, T>
         for (i,point) in origin.iter().enumerate() {
             let i = i + 1;
             let cell = {
-                let nx = ((cell_max_coord.x() - cell_min_coord.x()) / step).ceil();
-                let ny = ((cell_max_coord.y() - cell_min_coord.y()) / step).ceil();
-                (  ((point.x()-cell_min_coord.x()) / step).floor())
-                + (((point.y()-cell_min_coord.y()) / step).floor())*nx
-                + (((point.z()-cell_min_coord.z()) / step).floor())*nx*ny
+                let nx = ((box_max_coord.x() - box_min_coord.x()) / step).ceil();
+                let ny = ((box_max_coord.y() - box_min_coord.y()) / step).ceil();
+                (  ((point.x()-box_min_coord.x()) / step).floor())
+                + (((point.y()-box_min_coord.y()) / step).floor())*nx
+                + (((point.z()-box_min_coord.z()) / step).floor())*nx*ny
             }.as_();
             dbg!((&point.x(), point.y(), point.z(), &cell));
             let head_e = head.entry(cell).or_insert(0);
