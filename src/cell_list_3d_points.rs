@@ -1,4 +1,4 @@
-use std::{collections::HashMap};
+use std::{collections::HashMap, num::NonZeroUsize};
 use num_traits::{Float, AsPrimitive};
 
 use crate::cell_list::*;
@@ -21,9 +21,9 @@ impl<'a, T: Point3D> CellList3DPoints<'a, T> {
         cell_side: T::Precision
     ) -> Self {
         let mut head = HashMap::new();
-        let mut list = vec![0;origin.len() + 1];
+        let mut list = vec![None;origin.len() + 1];
         for (i,point) in origin.iter().enumerate() {
-            let i = i + 1;
+
             let cell = {
                 let nx = ((box_max_coord.x() - box_min_coord.x()) / cell_side).ceil();
                 let ny = ((box_max_coord.y() - box_min_coord.y()) / cell_side).ceil();
@@ -31,9 +31,10 @@ impl<'a, T: Point3D> CellList3DPoints<'a, T> {
                 + (((point.y()-box_min_coord.y()) / cell_side).floor())*nx
                 + (((point.z()-box_min_coord.z()) / cell_side).floor())*nx*ny
             }.as_();
-            let head_e = head.entry(cell).or_insert(0);
-            list[i] = *head_e;
-            *head_e = i;
+            let head_e = head.entry(cell).or_insert(None);
+            let i = unsafe { NonZeroUsize::new_unchecked(i + 1) };
+            list[i.get()] = *head_e;
+            *head_e = Some(i);
         }
         Self{ clist: CellList { head, list } , origin }
     }
@@ -69,7 +70,7 @@ impl<'a, T: Point3D> Iterator for IterPoints<'a, T> {
 
 pub struct IterCells<'a, T: Point3D> {
     clist: &'a CellList3DPoints<'a, T>,
-    cells_iter: std::collections::hash_map::Iter<'a, usize, usize>
+    cells_iter: std::collections::hash_map::Iter<'a, usize, Option<NonZeroUsize>>
 }
 
 impl<'a, T: Point3D> Iterator for IterCells<'a,T> {

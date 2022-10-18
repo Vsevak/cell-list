@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, num::NonZeroUsize};
 
 const USIZE_BITS: usize = core::mem::size_of::<usize>() * 8;
 const MAX_CAPACITY: usize = 1 << (USIZE_BITS-1);
@@ -21,8 +21,8 @@ const MAX_CAPACITY: usize = 1 << (USIZE_BITS-1);
 ///
 #[derive(Debug, Clone)]
 pub struct CellList {
-    pub(crate) head: HashMap<usize,usize>,
-    pub(crate) list: Vec<usize>,
+    pub(crate) head: HashMap<usize,Option<NonZeroUsize>>,
+    pub(crate) list: Vec<Option<NonZeroUsize>>,
 }
 
 impl CellList {
@@ -35,13 +35,13 @@ impl CellList {
     /// # Panics
     /// Vec capacity overflow for too large values.
     pub fn push(&mut self, cell: usize, value: usize) {
-        let value = value + 1;
-        let head_e = self.head.entry(cell).or_insert(0);
-        if let Some(_) = (value+1).checked_sub(self.list.len()) {
-            self.list.resize(value+1, 0);
+        let value = unsafe { NonZeroUsize::new_unchecked(value + 1) };
+        let head_e = self.head.entry(cell).or_insert(None);
+        if let Some(_) = (value.get() + 1).checked_sub(self.list.len()) {
+            self.list.resize(value.get() + 1, None);
         }
-        self.list[value] = *head_e;
-        *head_e = value;
+        self.list[value.get()] = *head_e;
+        *head_e = Some(value);
     }
 
     /// Return [iterator](CellItemsIter) over values stored in some cell if cell with `cell_index` were created, or [`None`] else.
@@ -63,19 +63,21 @@ impl Default for CellList {
 /// Iterator over values stored in some cell.
 pub struct CellItemsIter<'a> {
     pub(crate) clist: &'a CellList,
-    pub(crate) pos: usize
+    pub(crate) pos: Option<NonZeroUsize>
 }
 
 impl<'a> Iterator for CellItemsIter<'a> {
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let pos = self.pos;
-        if pos == 0 {
-            return None;
-        }
-        self.pos = self.clist.list[pos];
-        Some(pos-1)
+        match self.pos {
+            Some(pos) => {
+                let pos = pos.get();
+                self.pos = self.clist.list[pos];
+                Some(pos-1)
+            }
+            None => None
+        }      
     }
 }
 
